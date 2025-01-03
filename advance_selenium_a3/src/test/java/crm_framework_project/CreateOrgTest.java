@@ -2,50 +2,48 @@ package crm_framework_project;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.time.Duration;
+import java.sql.Driver;
 import java.util.Properties;
+import java.util.Random;
+import java.util.Scanner;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.remote.ErrorHandler.UnknownServerException;
-import org.openqa.selenium.safari.SafariDriver;
 
 public class CreateOrgTest {
 
-	public static void main(String[] args) throws IOException {
-		WebDriver driver = null;
-
-//		WebDriver driver = new ChromeDriver();
-//		driver = new FirefoxDriver();
-//		driver = new EdgeDriver();
-//		driver = new SafariDriver();
-
-		FileInputStream fis = new FileInputStream(
-				"C:\\Users\\User\\Qspiders\\advance_selenium_a3\\src\\main\\resources\\commonData.properties");
-
+	public static void main(String[] args) throws IOException, InterruptedException {
+		// Read common data from property file
+		FileInputStream fis = new FileInputStream("./src\\main\\resources\\commonData.properties");
 		Properties pObj = new Properties();
 		pObj.load(fis);
 
+		String BROWSER = pObj.getProperty("bro");
 		String URL = pObj.getProperty("url");
-		String BROWSER = pObj.getProperty("browser");
-		String USERNAME = pObj.getProperty("username");
-		String PASSWORD = pObj.getProperty("password");
+		String USERNAME = pObj.getProperty("un");
+		String PASSWORD = pObj.getProperty("pwd");
 
-		FileInputStream fis2 = new FileInputStream("C:\\Users\\User\\Desktop\\testScriptData.xlsx");
+		// Generate random number
+		Random random = new Random();
+		int randomInt = random.nextInt(1000);
+		System.out.println(randomInt);
 
-		Workbook wb = WorkbookFactory.create(fis2);
+		// Read testScript data from from excel file
+		FileInputStream fis1 = new FileInputStream("C:\\Users\\User\\Desktop\\testScriptData.xlsx");
+		Workbook wb = WorkbookFactory.create(fis1);
+		Sheet sh = wb.getSheet("org");
+		Row row = sh.getRow(1);
+		String orgName = row.getCell(0).toString() + randomInt;
 
-		String orgName = wb.getSheet("org").getRow(1).getCell(0).getStringCellValue();
-
-		System.out.println(orgName);
+		WebDriver driver = null;
 
 		if (BROWSER.equals("chrome")) {
 			driver = new ChromeDriver();
@@ -53,30 +51,29 @@ public class CreateOrgTest {
 			driver = new FirefoxDriver();
 		} else if (BROWSER.equals("edge")) {
 			driver = new EdgeDriver();
-		} else if (BROWSER.equals("safari")) {
-			driver = new SafariDriver();
 		} else {
 			driver = new ChromeDriver();
 		}
-		driver.manage().window().maximize();
-		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
 
 		driver.get(URL);
 
 		driver.findElement(By.name("user_name")).sendKeys(USERNAME);
 		driver.findElement(By.name("user_password")).sendKeys(PASSWORD);
-
 		driver.findElement(By.id("submitButton")).click();
 		driver.findElement(By.linkText("Organizations")).click();
-		driver.findElement(By.xpath("//img[@title='Create Organization...']")).click();
-		driver.findElement(By.name("accountname")).sendKeys(orgName);
-		driver.findElement(By.xpath("//input[@title='Save [Alt+S]']")).click();
 
-		String actOrgName = driver.findElement(By.className("dvHeaderText")).getText();
-		if (actOrgName.contains(orgName)) {
-			System.out.println("Organization created successfully!!!!");
+		driver.findElement(By.xpath("//img[@src='themes/softed/images/btnL3Add.gif']")).click();
+
+		driver.findElement(By.xpath("//input[@type='text' and @name='accountname']")).sendKeys(orgName);
+		driver.findElement(By.xpath("(//input[@type='button' and @class='crmbutton small save'])[2]")).click();
+
+		Thread.sleep(2000);
+		
+		WebElement verify = driver.findElement(By.xpath("//span[contains(text(), '" + orgName + "')]"));
+		if (verify.isDisplayed()) {
+			System.out.println(orgName + " Created Successfully!!!");
 		}
-		wb.close();
-		driver.close();
+
+		driver.quit();
 	}
 }
